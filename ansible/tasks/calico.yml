@@ -1,0 +1,22 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: Install Calico
+    command: kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+
+  - name: Download calico.conf
+    get_url:
+      url: https://docs.projectcalico.org/manifests/custom-resources.yaml
+      dest: /home/vagrant/custom-resources.yaml
+
+  - name: Add pod config to calico.yaml
+    lineinfile:
+      dest: /home/vagrant/custom-resources.yaml
+      regexp: '      cidr: "192.168.0.0/16".*$'
+      line: '      cidr: "172.20.0.0/16"'
+
+  - name: Install calico CNI
+    become: false
+    command: kubectl create -f custom-resources.yaml
+
