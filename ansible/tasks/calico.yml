@@ -7,11 +7,11 @@
     url: https://docs.projectcalico.org/manifests/custom-resources.yaml
     dest: /home/vagrant/custom-resources.yaml
 
-- name: Add pod config to calico.yaml
+- name: Add pod config to calico.yml
   lineinfile:
     dest: /home/vagrant/custom-resources.yaml
-    regexp: '      cidr: "192.168.0.0/16".*$'
-    line: '      cidr: "172.20.0.0/16"'
+    regexp: '      cidr: 192.168.0.0/16.*$'
+    line: '      cidr: 172.16.0.0/16'
 
 - name: Install calico CNI
   become: false

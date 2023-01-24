@@ -18,6 +18,7 @@
       - software-properties-common 
       - gnupg2
       - net-tools
+      - unzip
 
   - name: Remove swapfile from /etc/fstab
     mount:
@@ -50,9 +51,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet
-        - kubeadm
-        - kubectl
+        - kubelet={{ kubernetes_version }}
+        - kubeadm={{ kubernetes_version }}
+        - kubectl={{ kubernetes_version }}
 
   - name: Enable kernel modules
     shell: |
@@ -70,20 +71,19 @@
   - name: Persist changes
     command: sysctl -p
 
-  - include_tasks: tasks/binaries.yml
-  - include_tasks: cri-containerd.yml
-
   - name: Get IP enp0s8 addr
     shell: ip -4 address show enp0s8 | awk 'NR==2{ sub(/^[^0-9]*/, "", $2); printf "%s\n", $2; exit }' | sed -r 's/\/24//'
     register: output
 
-  - name: Configure kubelet
-    lineinfile:
-      path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-      line: Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"
+  - name: Get Hostname
+    shell: hostname -s
+    register: host
+
+  - include_tasks: tasks/binaries.yml
+  - include_tasks: cri-containerd.yml
 
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="{{ output.stdout }}" --apiserver-cert-extra-sans="{{ output.stdout }}" --pod-network-cidr=172.20.0.0/16 --v=5
+    command: kubeadm init --apiserver-advertise-address="{{ output.stdout }}" --control-plane-endpoint="{{ output.stdout }}" --apiserver-cert-extra-sans="{{ output.stdout }}" --node-name="{{ host.stdout }}" --pod-network-cidr=172.16.0.0/16
 
   - name: Create kube directory
     file:
@@ -108,3 +108,9 @@
   - name: Copy join command to local file
     become: false
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+
+  handlers:
+  - name: restart containerd
+    service:
+      name: containerd
+      state: restarted

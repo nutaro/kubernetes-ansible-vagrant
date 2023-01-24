@@ -48,9 +48,13 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet
-        - kubeadm
-        - kubectl
+        - kubelet={{ kubernetes_version }}
+        - kubeadm={{ kubernetes_version }}
+        - kubectl={{ kubernetes_version }}
+
+  - name: Get IP enp0s8 addr
+    shell: ip -4 address show enp0s8 | awk 'NR==2{ sub(/^[^0-9]*/, "", $2); printf "%s\n", $2; exit }' | sed -r 's/\/24//'
+    register: output
 
   - include_tasks: tasks/binaries.yml
   - include_tasks: cri-containerd.yml
@@ -70,17 +74,14 @@
   - name: Persist changes
     command: sysctl -p
 
-  - name: Get IP eth1 addr
-    shell: ip -4 address show enp0s8 | awk 'NR==2{ sub(/^[^0-9]*/, "", $2); printf "%s\n", $2; exit }' | sed -r 's/\/24//'
-    register: output
-
-  - name: Configure kubelet
-    lineinfile:
-      path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-      line: Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"
-
   - name: Copy the join command to server location
     copy: src=join-command dest=/tmp/join-command.sh mode=0777
 
   - name: Join the node to cluster
     command: sh /tmp/join-command.sh
+
+  handlers:
+  - name: restart containerd
+    service:
+      name: containerd
+      state: restarted
