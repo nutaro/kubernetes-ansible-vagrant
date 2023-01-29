@@ -1,5 +1,5 @@
 ---
-- name: "Create a directory for containerd config"
+- name: Create a directory for containerd config
   file: path=/etc/containerd state=directory
 
 - name: Ensure containerd config directory exists.
@@ -56,7 +56,7 @@
 - name: Ensure containerd is restarted immediately if necessary.
   meta: flush_handlers
 
-- name: "Start Containerd"
+- name: Start Containerd
   systemd: name=containerd daemon_reload=yes state=started enabled=yes
 
 - name: "Load br_netfilter kernel module"
@@ -64,32 +64,31 @@
     name: br_netfilter
     state: present
 
-- name: "Set bridge-nf-call-iptables"
+- name: Set bridge-nf-call-iptables
   sysctl:
     name: net.bridge.bridge-nf-call-iptables
     value: 1
 
-- name: "Set ip_forward"
+- name: Set ip_forward
   sysctl:
     name: net.ipv4.ip_forward
     value: 1
 
-- name: "Check kubelet args in kubelet config (Ubuntu)"
+- name: Check kubelet args in kubelet config
   shell: grep "^Environment=\"KUBELET_EXTRA_ARGS=" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf || true
   register: check_args
 
-- name: "Add runtime args in kubelet conf (Ubuntu)"
+- name: Add runtime args in kubelet conf
   lineinfile:
     dest: "/etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
     line: "Environment=\"KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }} --runtime-cgroups=/system.slice/containerd.service --container-runtime=remote --runtime-request-timeout=5m --container-runtime-endpoint=unix:///run/containerd/containerd.sock\""
     insertafter: '\[Service\]'
   when: check_args.stdout == ""
 
-- name: "Start Kubelet"
+- name: Start Kubelet
   systemd: name=kubelet daemon_reload=yes state=started enabled=yes
 
-# TODO This needs to be removed once we have consistent concurrent pull results
-- name: "Pre-pull pause container image"
+- name: Pre-pull pause container image
   shell: |
     /usr/local/bin/ctr pull registry.k8s.io/pause:3.7
     /usr/local/bin/crictl --runtime-endpoint unix:///run/containerd/containerd.sock \
