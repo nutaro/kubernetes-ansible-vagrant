@@ -10,31 +10,19 @@
     ansible.builtin.apt:
       update_cache: yes
 
-  - name: Install apt-transport-https
+  - name: Install packages
     ansible.builtin.apt:
-      name: apt-transport-https
+      name: "{{ packages }}"
       state: present
-
-  - name: Install ca-certificates
-    ansible.builtin.apt:
-      name: ca-certificates
-      state: present
-  - name: curl
-    ansible.builtin.apt:
-      name: curl
-      state: present
-  - name: Install software-properties-common
-    ansible.builtin.apt:
-      name: software-properties-common
-      state: present
-  - name: Install gnupg2
-    ansible.builtin.apt:
-      name: gnupg2
-      state: present
-  - name: Install net-tools
-    ansible.builtin.apt:
-      name: net-tools
-      state: present
+      update_cache: yes
+    vars:
+      packages:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+        - gnupg2
+        - net-tools
 
   - name: Remove swapfile from /etc/fstab
     mount:
@@ -78,9 +66,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet={{ kubernetes_version }}
-        - kubeadm={{ kubernetes_version }}
-        - kubectl={{ kubernetes_version }}
+        - kubelet
+        - kubeadm
+        - kubectl
 
   - name: Enable kernel modules
     shell: |
