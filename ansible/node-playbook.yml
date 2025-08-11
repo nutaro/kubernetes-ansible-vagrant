@@ -1,21 +1,42 @@
 ---
 - hosts: all
-  become: true
+  become: true # Enables privilege escalation for the entire play
+  become_user: root
   tasks:
   - include_vars: vars/vars.yml
-  - name: Install necessary packages
-    apt:
-      name: "{{ packages }}"
-      state: present
+  - name: Update apt cache
+    ansible.builtin.apt:
       update_cache: yes
-    vars:
-      packages:
-      - apt-transport-https
-      - ca-certificates
-      - curl
-      - software-properties-common
-      - gnupg2
-      - net-tools
+
+  - name: Install apt-transport-https
+    ansible.builtin.apt:
+      name: apt-transport-https
+      state: present
+
+  - name: Install ca-certificates
+    ansible.builtin.apt:
+      name: ca-certificates
+      state: present
+
+  - name: curl
+    ansible.builtin.apt:
+      name: curl
+      state: present
+
+  - name: Install software-properties-common
+    ansible.builtin.apt:
+      name: software-properties-common
+      state: present
+
+  - name: Install gnupg2
+    ansible.builtin.apt:
+      name: gnupg2
+      state: present
+
+  - name: Install net-tools
+    ansible.builtin.apt:
+      name: net-tools
+      state: present
 
   - name: Remove swapfile from /etc/fstab
     mount:
@@ -35,11 +56,22 @@
       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
       state: present
 
-  - name: Adding apt repository for Kubernetes
-    apt_repository:
-      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
-      state: present
-      filename: kubernetes.list
+  - name: mkdir
+    ansible.builtin.shell:
+      cmd: mkdir -p /etc/apt/keyrings
+
+  - name: Get Kubernetes package key
+    ansible.builtin.shell:
+      cmd: curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+  - name: Install Kubernetes repository
+    ansible.builtin.shell:
+      cmd: echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+  - name: Update apt cache
+    ansible.builtin.apt:
+      update_cache: yes
+      cache_valid_time: 3600
 
   - name: Install Kubernetes binaries
     apt:
@@ -48,9 +80,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet={{ kubernetes_version }}
-        - kubeadm={{ kubernetes_version }}
-        - kubectl={{ kubernetes_version }}
+        - kubelet
+        - kubeadm
+        - kubectl
 
   - name: Get IP enp0s8 addr
     shell: ip -4 address show enp0s8 | awk 'NR==2{ sub(/^[^0-9]*/, "", $2); printf "%s\n", $2; exit }' | sed -r 's/\/24//'
@@ -81,7 +113,7 @@
     command: sh /tmp/join-command.sh
 
   handlers:
-  - name: restart containerd
-    service:
+  - name: Restart containerd
+    ansible. builtin.systemd_service:
       name: containerd
       state: restarted

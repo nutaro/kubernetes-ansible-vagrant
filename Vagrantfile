@@ -1,5 +1,5 @@
-IMAGE_NAME = "ubuntu/jammy64"
-N = 1
+IMAGE_NAME = "debian/bookworm64"
+N = 2
 
 Vagrant.configure("2") do |config|
     config.ssh.insert_key = false
@@ -14,6 +14,7 @@ Vagrant.configure("2") do |config|
         master.vm.network "private_network", ip: "192.168.56.10"
         master.vm.hostname = "k8s-master"
         master.vm.provision "ansible" do |ansible|
+            ansible.verbose = "v"
             ansible.playbook = "ansible/master-playbook.yml"
             ansible.extra_vars = {
                 node_ip: "192.168.56.10",
@@ -27,6 +28,7 @@ Vagrant.configure("2") do |config|
             node.vm.network "private_network", ip: "192.168.56.1#{i}"
             node.vm.hostname = "node-#{i}"
             node.vm.provision "ansible" do |ansible|
+                ansible.verbose = "v"
                 ansible.playbook = "ansible/node-playbook.yml"
                 ansible.extra_vars = {
                     node_ip: "192.168.56.1#{i}",

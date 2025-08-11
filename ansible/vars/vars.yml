@@ -1,8 +1,11 @@
 ---
-containerd_release_version: 1.6.15
+containerd_release_version: 2.1.4
 cni_bin_dir: /opt/cni/bin/
 cni_conf_dir: /etc/cni/net.d/
-kubernetes_version: 1.26.0-00
+kubernetes_version: 1.33
+k8s_url_apt_key: "https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key"
+k8s_gpgpath: /usr/share/keyrings/kubernetes-apt-keyring.gpg
+k8s_repository: "https://pkgs.k8s.io/core:/stable:/v1.33/deb/"
 
 containerd_package: containerd.io
 containerd_package_state: present
