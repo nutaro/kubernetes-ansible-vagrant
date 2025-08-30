@@ -35,11 +35,6 @@
     command: swapoff -a
     when: ansible_swaptotal_mb > 0
 
-  - name: Add an apt signing key for Kubernetes
-    apt_key:
-      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-      state: present
-
   - name: mkdir
     ansible.builtin.shell:
       cmd: mkdir -p /etc/apt/keyrings
@@ -69,11 +64,11 @@
         - kubectl
 
   - name: Get IP enp0s8 addr
-    shell: ip -4 address show enp0s8 | awk 'NR==2{ sub(/^[^0-9]*/, "", $2); printf "%s\n", $2; exit }' | sed -r 's/\/24//'
+    shell: ip -4 address show enp0s8 | grep -oP 'inet \K[\d.]+'
     register: output
 
   - include_tasks: tasks/binaries.yml
-  - include_tasks: cri-containerd.yml
+  - include_tasks: cri-crio.yml
 
   - name: Enable kernel modules
     shell: |
@@ -95,9 +90,3 @@
 
   - name: Join the node to cluster
     command: sh /tmp/join-command.sh
-
-  handlers:
-  - name: Restart containerd
-    ansible. builtin.systemd_service:
-      name: containerd
-      state: restarted

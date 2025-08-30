@@ -5,7 +5,6 @@
     KUBECONFIG: "/home/vagrant/.kube/config"
   tasks:
   - include_vars: vars/vars.yml
-
   - name: Update apt cache
     ansible.builtin.apt:
       update_cache: yes
@@ -35,12 +34,10 @@
 
   - name: Disable swap
     command: swapoff -a
-    when: ansible_swaptotal_mb > 0
 
-  - name: Add an apt signing key for Kubernetes
-    apt_key:
-      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-      state: present
+  - name: remove swap
+    ansible.builtin.shell:
+      cmd: sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
   - name: mkdir
     ansible.builtin.shell:
@@ -95,14 +92,19 @@
     register: host
 
   - include_tasks: tasks/binaries.yml
-  - include_tasks: cri-containerd.yml
+  - include_tasks: cri-crio.yml
 
   - name: pull kubeadm images
     ansible.builtin.shell:
       cmd: kubeadm config images pull
 
+
+  - name: start kubelet
+    ansible.builtin.shell:
+      cmd: systemctl enable --now kubelet
+
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="{{ output.stdout }}" --control-plane-endpoint="{{ output.stdout }}" --apiserver-cert-extra-sans="{{ output.stdout }}" --node-name="{{ host.stdout }}" --pod-network-cidr=172.16.0.0/16
+    command: kubeadm init --v=5 --apiserver-advertise-address="{{ output.stdout }}" --control-plane-endpoint="{{ output.stdout }}" --apiserver-cert-extra-sans="{{ output.stdout }}" --node-name="{{ host.stdout }}" --pod-network-cidr=172.16.0.0/16
 
   - name: Create kube directory
     file:
@@ -127,8 +129,3 @@
   - name: Copy join command to local file
     become: false
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-
-  handlers:
-  - name: Restart containerd
-    ansible.builtin.shell:
-      cmd: systemctl restart containerd
