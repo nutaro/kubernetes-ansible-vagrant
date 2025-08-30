@@ -22,6 +22,7 @@
         - software-properties-common
         - gnupg2
         - net-tools
+        - nfs-common
 
   - name: Remove swapfile from /etc/fstab
     mount:
