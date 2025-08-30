@@ -1,12 +1,27 @@
 ---
-- name: Get Containerd
+- name: Create /opt/cni/bin directory
+  ansible.builtin.file:
+    path: /opt/cni/bin/
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create /etc/cni/net.d/ directory
+  ansible.builtin.file:
+    path: /etc/cni/net.d/
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Download Containerd
+  ansible.builtin.get_url:
+    url: "https://github.com/containerd/containerd/releases/download/v2.1.4/containerd-2.1.4-linux-amd64.tar.gz"
+    dest: /tmp/containerd.tar.gz
+
+- name: Unarchive containerd
   unarchive:
-    src: "https://github.com/containerd/containerd/releases/download/v{{ containerd_release_version }}/cri-containerd-cni-{{ containerd_release_version }}-linux-amd64.tar.gz"
-    dest: "/"
+    src: /tmp/containerd.tar.gz
+    dest: /usr/local/
     remote_src: yes
-
-- name: Create a directory for cni binary
-  file: path={{ cni_bin_dir }} state=directory
-
-- name: Create a directory for cni config files
-  file: path={{ cni_conf_dir }} state=directory
